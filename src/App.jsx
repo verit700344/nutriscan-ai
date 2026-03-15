@@ -1,23 +1,18 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Camera, Upload, Sparkles, AlertCircle, CheckCircle, Pill, Apple, Info, ArrowRight, Zap, Activity } from 'lucide-react';
+import { Upload, Sparkles, AlertCircle, CheckCircle, Pill, Apple, Info, ArrowRight } from 'lucide-react';
 
 export default function NutritionalDeficiencyDetector() {
   const [image, setImage] = useState(null);
   const [analyzing, setAnalyzing] = useState(false);
   const [results, setResults] = useState(null);
   const [dragActive, setDragActive] = useState(false);
-  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
+  const [scrollY, setScrollY] = useState(0);
   const fileInputRef = useRef(null);
 
   useEffect(() => {
-    const handleMouseMove = (e) => {
-      setMousePosition({
-        x: (e.clientX / window.innerWidth) * 100,
-        y: (e.clientY / window.innerHeight) * 100
-      });
-    };
-    window.addEventListener('mousemove', handleMouseMove);
-    return () => window.removeEventListener('mousemove', handleMouseMove);
+    const handleScroll = () => setScrollY(window.scrollY);
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
   const handleDrag = (e) => {
@@ -49,9 +44,7 @@ export default function NutritionalDeficiencyDetector() {
   const handleFile = (file) => {
     if (file && file.type.startsWith('image/')) {
       const reader = new FileReader();
-      reader.onload = (e) => {
-        setImage(e.target.result);
-      };
+      reader.onload = (e) => setImage(e.target.result);
       reader.readAsDataURL(file);
     }
   };
@@ -59,24 +52,20 @@ export default function NutritionalDeficiencyDetector() {
   const analyzeImage = async () => {
     setAnalyzing(true);
     setResults(null);
-
     try {
       const base64Data = image.split(',')[1];
       const mimeType = image.split(';')[0].split(':')[1];
-
       const response = await fetch("/api/analyze", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ image: base64Data, mimeType: mimeType })
       });
-
       const data = await response.json();
       const analysisResults = JSON.parse(data.analysis);
-      
       setTimeout(() => {
         setResults(analysisResults);
         setAnalyzing(false);
-      }, 2000);
+      }, 1800);
     } catch (error) {
       console.error("Analysis error:", error);
       setAnalyzing(false);
@@ -90,97 +79,91 @@ export default function NutritionalDeficiencyDetector() {
   };
 
   return (
-    <div className="min-h-screen bg-[#0A0A0F] text-white relative overflow-hidden">
-      {/* Animated Gradient Background */}
+    <div className="min-h-screen bg-[#0d0d11] text-[#b6bac5] relative overflow-hidden font-light">
+      {/* Subtle grid background */}
       <div 
-        className="fixed inset-0 opacity-40 transition-all duration-700"
+        className="fixed inset-0 opacity-[0.03]"
         style={{
-          background: `radial-gradient(circle at ${mousePosition.x}% ${mousePosition.y}%, rgba(99, 102, 241, 0.15), transparent 50%), 
-                       radial-gradient(circle at ${100 - mousePosition.x}% ${100 - mousePosition.y}%, rgba(139, 92, 246, 0.15), transparent 50%),
-                       linear-gradient(180deg, #0A0A0F 0%, #1a1a2e 100%)`
+          backgroundImage: `linear-gradient(#b6bac5 1px, transparent 1px), linear-gradient(90deg, #b6bac5 1px, transparent 1px)`,
+          backgroundSize: '80px 80px'
         }}
       />
 
-      {/* Floating Orbs */}
+      {/* Chromatic aberration gradient orbs */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden">
         <div 
-          className="absolute w-96 h-96 rounded-full blur-3xl opacity-20 animate-float"
+          className="absolute w-[600px] h-[600px] rounded-full blur-[120px] opacity-10"
           style={{ 
-            background: 'radial-gradient(circle, rgba(99, 102, 241, 0.4), transparent)',
-            top: '10%',
+            background: 'radial-gradient(circle, rgba(182, 186, 197, 0.3), transparent)',
+            top: '5%',
             left: '10%',
-            animation: 'float 20s ease-in-out infinite'
+            transform: `translateY(${scrollY * 0.3}px)`,
+            filter: 'blur(120px) contrast(150%)'
           }}
         />
         <div 
-          className="absolute w-96 h-96 rounded-full blur-3xl opacity-20 animate-float-delay"
+          className="absolute w-[500px] h-[500px] rounded-full blur-[100px] opacity-10"
           style={{ 
-            background: 'radial-gradient(circle, rgba(139, 92, 246, 0.4), transparent)',
+            background: 'radial-gradient(circle, rgba(56, 62, 78, 0.4), transparent)',
             bottom: '10%',
-            right: '10%',
-            animation: 'float 25s ease-in-out infinite 5s'
+            right: '5%',
+            transform: `translateY(${scrollY * -0.2}px)`,
+            filter: 'blur(100px) contrast(150%)'
           }}
         />
       </div>
 
-      {/* Noise Texture Overlay */}
-      <div 
-        className="fixed inset-0 opacity-[0.015] pointer-events-none mix-blend-overlay"
-        style={{
-          backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")`
-        }}
-      />
-
-      <div className="relative z-10 container mx-auto px-6 py-16 max-w-7xl">
-        {/* Header */}
-        <div className="text-center mb-20">
-          <div className="inline-block mb-6">
-            <div className="flex items-center gap-2 px-6 py-2.5 bg-white/5 border border-white/10 rounded-full backdrop-blur-xl">
-              <Zap className="w-4 h-4 text-indigo-400" />
-              <span className="text-sm font-medium text-white/80 tracking-wide">AI-Powered Health Analysis</span>
-            </div>
+      <div className="relative z-10 container mx-auto px-8 py-24 max-w-6xl">
+        {/* Minimal header */}
+        <div className="mb-32 text-center">
+          <div className="inline-block mb-8 px-6 py-2 border border-[#b6bac5]/10 rounded-full backdrop-blur-sm">
+            <span className="text-xs uppercase tracking-[0.2em] text-[#b6bac5]/60">AI Health Analysis</span>
           </div>
           
-          <h1 className="text-8xl md:text-9xl font-bold mb-6 tracking-tight">
-            <span className="bg-gradient-to-b from-white via-white/95 to-white/70 bg-clip-text text-transparent">
-              NutriScan
-            </span>
+          <h1 className="text-[clamp(3rem,8vw,7rem)] font-extralight mb-6 leading-[0.9] tracking-tight">
+            <span className="block text-[#b6bac5]">NutriScan</span>
           </h1>
           
-          <p className="text-xl text-white/60 max-w-2xl mx-auto font-light leading-relaxed">
-            Advanced computer vision technology for<br/>
-            nutritional deficiency detection
+          <p className="text-lg text-[#b6bac5]/50 max-w-xl mx-auto font-extralight tracking-wide">
+            Precision nutritional deficiency detection
           </p>
         </div>
 
         {/* Main Content */}
         {!image ? (
-          /* Upload Area */
+          /* Upload Area - Ice block aesthetic */
           <div 
-            className={`relative transition-all duration-700 ${dragActive ? 'scale-[1.02]' : ''}`}
+            className="relative group"
             onDragEnter={handleDrag}
             onDragLeave={handleDrag}
             onDragOver={handleDrag}
             onDrop={handleDrop}
           >
-            <div className={`
-              group relative rounded-3xl cursor-pointer overflow-hidden
-              transition-all duration-700 ease-out
-              ${dragActive 
-                ? 'bg-white/10 border-white/30 shadow-2xl shadow-indigo-500/20' 
-                : 'bg-white/[0.02] border-white/10 hover:bg-white/[0.04] hover:border-white/20'
-              }
-              border backdrop-blur-2xl
-            `}
-            style={{
-              background: dragActive 
-                ? 'linear-gradient(135deg, rgba(99, 102, 241, 0.1), rgba(139, 92, 246, 0.1))'
-                : 'linear-gradient(135deg, rgba(255, 255, 255, 0.02), rgba(255, 255, 255, 0.01))'
-            }}
-            onClick={() => fileInputRef.current?.click()}
+            <div 
+              className={`
+                relative rounded-3xl cursor-pointer overflow-hidden
+                transition-all duration-1000 ease-out
+                border backdrop-blur-xl
+                ${dragActive 
+                  ? 'border-[#b6bac5]/30 bg-[#b6bac5]/[0.02] shadow-[0_0_80px_rgba(182,186,197,0.1)]' 
+                  : 'border-[#b6bac5]/[0.08] bg-[#0d0d11]/40 hover:border-[#b6bac5]/[0.15] hover:bg-[#b6bac5]/[0.01]'
+                }
+              `}
+              style={{
+                boxShadow: dragActive 
+                  ? '0 0 0 1px rgba(182,186,197,0.05), 0 20px 60px -10px rgba(182,186,197,0.1), inset 0 1px 0 rgba(182,186,197,0.1)' 
+                  : '0 0 0 1px rgba(182,186,197,0.03), inset 0 1px 0 rgba(182,186,197,0.05)',
+                transform: dragActive ? 'scale(1.01)' : 'scale(1)'
+              }}
+              onClick={() => fileInputRef.current?.click()}
             >
-              {/* Glass reflection effect */}
-              <div className="absolute inset-0 bg-gradient-to-br from-white/10 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
+              {/* Chromatic aberration effect */}
+              <div 
+                className="absolute inset-0 opacity-20 pointer-events-none mix-blend-screen"
+                style={{
+                  background: 'linear-gradient(135deg, rgba(182,186,197,0.1) 0%, transparent 50%, rgba(56,62,78,0.1) 100%)'
+                }}
+              />
               
               <input
                 ref={fileInputRef}
@@ -190,33 +173,26 @@ export default function NutritionalDeficiencyDetector() {
                 onChange={handleChange}
               />
               
-              <div className="relative p-24 text-center">
-                {/* Icon */}
-                <div className="inline-flex items-center justify-center w-32 h-32 mb-10 rounded-3xl bg-gradient-to-br from-indigo-500/20 to-purple-500/20 border border-white/20 backdrop-blur-xl group-hover:scale-110 transition-transform duration-700">
-                  <Upload className="w-16 h-16 text-white/80 group-hover:text-white transition-colors duration-700" />
+              <div className="relative p-32">
+                {/* Ice-block icon container */}
+                <div className="inline-flex items-center justify-center w-28 h-28 mb-12 rounded-2xl bg-[#b6bac5]/[0.03] border border-[#b6bac5]/10 backdrop-blur-xl group-hover:bg-[#b6bac5]/[0.05] transition-all duration-700">
+                  <Upload className="w-14 h-14 text-[#b6bac5]/60 group-hover:text-[#b6bac5]/80 transition-colors duration-700" />
                 </div>
                 
-                <h3 className="text-4xl font-semibold mb-4 text-white/90">
-                  {dragActive ? 'Release to upload' : 'Upload Image'}
+                <h3 className="text-3xl font-extralight mb-4 text-[#b6bac5]/90 tracking-wide">
+                  {dragActive ? 'Release to analyze' : 'Upload image'}
                 </h3>
                 
-                <p className="text-lg text-white/50 mb-12 font-light">
-                  Drag and drop or click to select<br/>
-                  <span className="text-sm text-white/40">Supports JPG, PNG, WebP</span>
+                <p className="text-base text-[#b6bac5]/40 mb-16 font-extralight tracking-wide">
+                  Drop file or click to browse<br/>
+                  <span className="text-sm text-[#b6bac5]/30">JPG, PNG, WebP supported</span>
                 </p>
                 
                 <div className="flex items-center justify-center gap-4">
-                  <button className="group/btn px-8 py-4 bg-white text-black rounded-2xl font-semibold hover:scale-105 transition-all duration-300 shadow-lg shadow-white/10">
-                    <span className="flex items-center gap-2">
-                      Choose File
-                      <ArrowRight className="w-4 h-4 group-hover/btn:translate-x-1 transition-transform" />
-                    </span>
-                  </button>
-                  
-                  <button className="px-8 py-4 bg-white/5 border border-white/20 rounded-2xl font-semibold hover:bg-white/10 transition-all duration-300 backdrop-blur-xl">
-                    <span className="flex items-center gap-2">
-                      <Camera className="w-5 h-5" />
-                      Camera
+                  <button className="px-10 py-4 bg-[#b6bac5]/[0.08] border border-[#b6bac5]/20 rounded-2xl font-light hover:bg-[#b6bac5]/[0.12] hover:border-[#b6bac5]/30 transition-all duration-500 backdrop-blur-xl">
+                    <span className="flex items-center gap-2 text-[#b6bac5]/90">
+                      Select file
+                      <ArrowRight className="w-4 h-4" />
                     </span>
                   </button>
                 </div>
@@ -226,88 +202,91 @@ export default function NutritionalDeficiencyDetector() {
         ) : !results && !analyzing ? (
           /* Image Preview */
           <div className="space-y-8 animate-fade-in">
-            <div className="relative rounded-3xl overflow-hidden border border-white/10 shadow-2xl backdrop-blur-xl bg-white/[0.02]">
+            <div className="relative rounded-3xl overflow-hidden border border-[#b6bac5]/[0.08] shadow-[0_0_0_1px_rgba(182,186,197,0.03)] backdrop-blur-xl bg-[#0d0d11]/60">
               <img 
                 src={image} 
                 alt="Preview" 
-                className="w-full max-h-[600px] object-contain"
+                className="w-full max-h-[500px] object-contain opacity-90"
               />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent" />
             </div>
             
             <div className="flex gap-4 justify-center">
               <button
                 onClick={analyzeImage}
-                className="group px-12 py-5 bg-white text-black rounded-2xl font-bold text-lg hover:scale-105 transition-all duration-300 shadow-lg shadow-white/20"
+                className="px-10 py-4 bg-[#b6bac5]/[0.08] border border-[#b6bac5]/20 rounded-2xl font-light hover:bg-[#b6bac5]/[0.12] transition-all duration-500 backdrop-blur-xl"
               >
-                <span className="flex items-center gap-3">
-                  <Sparkles className="w-6 h-6 group-hover:rotate-12 transition-transform" />
-                  Analyze with AI
+                <span className="flex items-center gap-2 text-[#b6bac5]/90">
+                  <Sparkles className="w-5 h-5" />
+                  Analyze
                 </span>
               </button>
               
               <button
                 onClick={resetAnalysis}
-                className="px-12 py-5 bg-white/5 border border-white/20 rounded-2xl font-bold text-lg hover:bg-white/10 transition-all duration-300 backdrop-blur-xl"
+                className="px-10 py-4 bg-transparent border border-[#b6bac5]/10 rounded-2xl font-light hover:border-[#b6bac5]/20 transition-all duration-500"
               >
-                Change Image
+                <span className="text-[#b6bac5]/70">Reset</span>
               </button>
             </div>
           </div>
         ) : analyzing ? (
-          /* Loading */
-          <div className="text-center py-32 animate-fade-in">
+          /* Loading - Minimal */
+          <div className="text-center py-40 animate-fade-in">
             <div className="relative inline-block mb-12">
-              <div className="w-40 h-40 rounded-full border border-white/10" />
-              <div className="w-40 h-40 rounded-full border-2 border-t-white/80 border-r-white/60 border-b-transparent border-l-transparent absolute top-0 left-0 animate-spin" />
-              <Activity className="w-16 h-16 text-white/80 absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 animate-pulse" />
+              <div className="w-32 h-32 rounded-full border border-[#b6bac5]/10" />
+              <div className="w-32 h-32 rounded-full border border-t-[#b6bac5]/40 border-r-transparent border-b-transparent border-l-transparent absolute top-0 left-0 animate-spin" 
+                   style={{ animationDuration: '2s' }} />
             </div>
             
-            <h3 className="text-4xl font-semibold mb-4 text-white/90">
-              Analyzing Image
+            <h3 className="text-3xl font-extralight mb-4 text-[#b6bac5]/80 tracking-wide">
+              Analyzing
             </h3>
-            <p className="text-lg text-white/50 font-light">Processing with advanced AI models...</p>
+            <p className="text-base text-[#b6bac5]/40 font-extralight">Processing data...</p>
           </div>
         ) : results && (
-          /* Results */
-          <div className="space-y-8 animate-fade-in">
-            {/* General Observations */}
-            <div className="rounded-3xl border border-white/10 bg-white/[0.02] backdrop-blur-2xl p-10 hover:bg-white/[0.04] transition-all duration-500">
+          /* Results - Ice block cards */
+          <div className="space-y-6 animate-fade-in">
+            {/* Summary */}
+            <div className="rounded-3xl border border-[#b6bac5]/[0.08] bg-[#0d0d11]/40 backdrop-blur-xl p-10" 
+                 style={{ boxShadow: '0 0 0 1px rgba(182,186,197,0.03), inset 0 1px 0 rgba(182,186,197,0.05)' }}>
               <div className="flex items-start gap-6">
-                <div className="w-14 h-14 rounded-2xl bg-indigo-500/20 border border-indigo-500/30 flex items-center justify-center flex-shrink-0">
-                  <Info className="w-7 h-7 text-indigo-300" />
+                <div className="w-12 h-12 rounded-xl bg-[#b6bac5]/[0.05] border border-[#b6bac5]/10 flex items-center justify-center flex-shrink-0">
+                  <Info className="w-6 h-6 text-[#b6bac5]/60" />
                 </div>
-                <div className="flex-1">
-                  <h3 className="text-2xl font-semibold mb-4 text-white/90">Analysis Summary</h3>
-                  <p className="text-lg text-white/60 leading-relaxed font-light">{results.generalObservations}</p>
+                <div>
+                  <h3 className="text-xl font-light mb-3 text-[#b6bac5]/90 tracking-wide">Summary</h3>
+                  <p className="text-base text-[#b6bac5]/60 leading-relaxed font-extralight">{results.generalObservations}</p>
                 </div>
               </div>
             </div>
 
             {/* Deficiencies */}
-            {results.deficiencies && results.deficiencies.length > 0 ? (
-              <div className="space-y-6">
-                <h2 className="text-5xl font-bold text-center text-white/90 mb-8">
-                  Detected Deficiencies
+            {results.deficiencies && results.deficiencies.length > 0 && (
+              <div className="space-y-6 mt-12">
+                <h2 className="text-4xl font-extralight text-center text-[#b6bac5]/90 mb-8 tracking-wide">
+                  Detected deficiencies
                 </h2>
                 
                 {results.deficiencies.map((def, idx) => (
                   <div 
                     key={idx}
-                    className="group rounded-3xl border border-white/10 bg-white/[0.02] backdrop-blur-2xl overflow-hidden hover:border-white/20 transition-all duration-700"
-                    style={{ animationDelay: `${idx * 100}ms` }}
+                    className="rounded-3xl border border-[#b6bac5]/[0.08] bg-[#0d0d11]/40 backdrop-blur-xl overflow-hidden hover:border-[#b6bac5]/[0.12] transition-all duration-700"
+                    style={{ 
+                      boxShadow: '0 0 0 1px rgba(182,186,197,0.03), inset 0 1px 0 rgba(182,186,197,0.05)',
+                      animationDelay: `${idx * 100}ms` 
+                    }}
                   >
                     {/* Header */}
-                    <div className="bg-gradient-to-r from-indigo-500/20 via-purple-500/20 to-pink-500/20 p-8 border-b border-white/10">
+                    <div className="bg-[#b6bac5]/[0.02] p-8 border-b border-[#b6bac5]/[0.08]">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-5">
-                          <div className="w-14 h-14 rounded-2xl bg-black/30 flex items-center justify-center backdrop-blur-xl">
-                            <Pill className="w-7 h-7" />
+                          <div className="w-12 h-12 rounded-xl bg-[#b6bac5]/[0.05] flex items-center justify-center">
+                            <Pill className="w-6 h-6 text-[#b6bac5]/70" />
                           </div>
-                          <h3 className="text-3xl font-bold">{def.nutrient}</h3>
+                          <h3 className="text-2xl font-light text-[#b6bac5]/90">{def.nutrient}</h3>
                         </div>
-                        <span className="px-5 py-2.5 bg-black/40 rounded-full text-sm font-bold uppercase tracking-wider backdrop-blur-xl">
-                          {def.confidence} confidence
+                        <span className="px-4 py-2 bg-[#b6bac5]/[0.05] border border-[#b6bac5]/10 rounded-full text-xs uppercase tracking-widest text-[#b6bac5]/60">
+                          {def.confidence}
                         </span>
                       </div>
                     </div>
@@ -316,16 +295,14 @@ export default function NutritionalDeficiencyDetector() {
                       {/* Symptoms */}
                       {def.symptoms && def.symptoms.length > 0 && (
                         <div>
-                          <div className="flex items-center gap-4 mb-6">
-                            <div className="w-10 h-10 rounded-xl bg-red-500/20 flex items-center justify-center">
-                              <AlertCircle className="w-5 h-5 text-red-400" />
-                            </div>
-                            <h4 className="text-xl font-bold text-red-300">Observed Symptoms</h4>
-                          </div>
-                          <ul className="space-y-3">
+                          <h4 className="text-sm uppercase tracking-[0.2em] mb-4 text-[#b6bac5]/50 font-light flex items-center gap-3">
+                            <AlertCircle className="w-4 h-4" />
+                            Symptoms
+                          </h4>
+                          <ul className="space-y-2">
                             {def.symptoms.map((symptom, i) => (
-                              <li key={i} className="flex items-start gap-4 text-white/70 text-lg font-light">
-                                <span className="w-2 h-2 rounded-full bg-red-400 mt-2.5 flex-shrink-0" />
+                              <li key={i} className="flex items-start gap-3 text-[#b6bac5]/70 text-sm font-extralight leading-relaxed">
+                                <span className="w-1 h-1 rounded-full bg-[#b6bac5]/40 mt-2 flex-shrink-0" />
                                 <span>{symptom}</span>
                               </li>
                             ))}
@@ -336,16 +313,14 @@ export default function NutritionalDeficiencyDetector() {
                       {/* Causes */}
                       {def.causes && def.causes.length > 0 && (
                         <div>
-                          <div className="flex items-center gap-4 mb-6">
-                            <div className="w-10 h-10 rounded-xl bg-yellow-500/20 flex items-center justify-center">
-                              <Info className="w-5 h-5 text-yellow-400" />
-                            </div>
-                            <h4 className="text-xl font-bold text-yellow-300">Common Causes</h4>
-                          </div>
-                          <ul className="space-y-3">
+                          <h4 className="text-sm uppercase tracking-[0.2em] mb-4 text-[#b6bac5]/50 font-light flex items-center gap-3">
+                            <Info className="w-4 h-4" />
+                            Causes
+                          </h4>
+                          <ul className="space-y-2">
                             {def.causes.map((cause, i) => (
-                              <li key={i} className="flex items-start gap-4 text-white/70 text-lg font-light">
-                                <span className="w-2 h-2 rounded-full bg-yellow-400 mt-2.5 flex-shrink-0" />
+                              <li key={i} className="flex items-start gap-3 text-[#b6bac5]/70 text-sm font-extralight leading-relaxed">
+                                <span className="w-1 h-1 rounded-full bg-[#b6bac5]/40 mt-2 flex-shrink-0" />
                                 <span>{cause}</span>
                               </li>
                             ))}
@@ -356,17 +331,15 @@ export default function NutritionalDeficiencyDetector() {
                       {/* Food Sources */}
                       {def.foodSources && def.foodSources.length > 0 && (
                         <div>
-                          <div className="flex items-center gap-4 mb-6">
-                            <div className="w-10 h-10 rounded-xl bg-green-500/20 flex items-center justify-center">
-                              <Apple className="w-5 h-5 text-green-400" />
-                            </div>
-                            <h4 className="text-xl font-bold text-green-300">Rich Food Sources</h4>
-                          </div>
-                          <div className="flex flex-wrap gap-3">
+                          <h4 className="text-sm uppercase tracking-[0.2em] mb-4 text-[#b6bac5]/50 font-light flex items-center gap-3">
+                            <Apple className="w-4 h-4" />
+                            Sources
+                          </h4>
+                          <div className="flex flex-wrap gap-2">
                             {def.foodSources.map((food, i) => (
                               <span 
                                 key={i}
-                                className="px-5 py-2.5 bg-green-500/10 border border-green-500/30 rounded-full text-sm font-medium text-green-300 backdrop-blur-xl hover:bg-green-500/20 transition-colors duration-300"
+                                className="px-4 py-2 bg-[#b6bac5]/[0.03] border border-[#b6bac5]/10 rounded-full text-xs text-[#b6bac5]/70 font-light hover:bg-[#b6bac5]/[0.05] transition-colors duration-500"
                               >
                                 {food}
                               </span>
@@ -378,16 +351,14 @@ export default function NutritionalDeficiencyDetector() {
                       {/* Remedies */}
                       {def.remedies && def.remedies.length > 0 && (
                         <div>
-                          <div className="flex items-center gap-4 mb-6">
-                            <div className="w-10 h-10 rounded-xl bg-cyan-500/20 flex items-center justify-center">
-                              <CheckCircle className="w-5 h-5 text-cyan-400" />
-                            </div>
-                            <h4 className="text-xl font-bold text-cyan-300">Recommended Actions</h4>
-                          </div>
-                          <ul className="space-y-3">
+                          <h4 className="text-sm uppercase tracking-[0.2em] mb-4 text-[#b6bac5]/50 font-light flex items-center gap-3">
+                            <CheckCircle className="w-4 h-4" />
+                            Actions
+                          </h4>
+                          <ul className="space-y-2">
                             {def.remedies.map((remedy, i) => (
-                              <li key={i} className="flex items-start gap-4 text-white/70 text-lg font-light">
-                                <CheckCircle className="w-6 h-6 text-cyan-400 mt-0.5 flex-shrink-0" />
+                              <li key={i} className="flex items-start gap-3 text-[#b6bac5]/70 text-sm font-extralight leading-relaxed">
+                                <CheckCircle className="w-4 h-4 text-[#b6bac5]/40 mt-0.5 flex-shrink-0" />
                                 <span>{remedy}</span>
                               </li>
                             ))}
@@ -398,34 +369,28 @@ export default function NutritionalDeficiencyDetector() {
                   </div>
                 ))}
               </div>
-            ) : (
-              <div className="text-center py-16 bg-green-900/10 border border-green-500/30 rounded-3xl backdrop-blur-xl">
-                <CheckCircle className="w-20 h-20 text-green-400 mx-auto mb-6" />
-                <h3 className="text-3xl font-bold text-green-300 mb-3">No Deficiencies Detected</h3>
-                <p className="text-lg text-white/60 font-light">Analysis didn't identify clear signs of deficiencies.</p>
-              </div>
             )}
 
             {/* Disclaimer */}
-            <div className="rounded-3xl bg-yellow-900/10 border border-yellow-500/30 p-8 backdrop-blur-xl">
-              <div className="flex items-start gap-5">
-                <AlertCircle className="w-7 h-7 text-yellow-400 mt-1 flex-shrink-0" />
+            <div className="rounded-3xl bg-[#383e4e]/10 border border-[#b6bac5]/[0.08] p-8 mt-8">
+              <div className="flex items-start gap-4">
+                <AlertCircle className="w-5 h-5 text-[#b6bac5]/40 mt-1 flex-shrink-0" />
                 <div>
-                  <h4 className="font-bold text-yellow-300 mb-3 text-lg">Medical Disclaimer</h4>
-                  <p className="text-white/60 leading-relaxed font-light">
+                  <h4 className="font-light text-[#b6bac5]/70 mb-2 text-sm uppercase tracking-wider">Disclaimer</h4>
+                  <p className="text-[#b6bac5]/50 text-sm leading-relaxed font-extralight">
                     {results.disclaimer}
                   </p>
                 </div>
               </div>
             </div>
 
-            {/* Action Button */}
+            {/* Action */}
             <div className="text-center pt-8">
               <button
                 onClick={resetAnalysis}
-                className="px-12 py-5 bg-white text-black rounded-2xl font-bold text-lg hover:scale-105 transition-all duration-300 shadow-lg shadow-white/20"
+                className="px-10 py-4 bg-[#b6bac5]/[0.08] border border-[#b6bac5]/20 rounded-2xl font-light hover:bg-[#b6bac5]/[0.12] transition-all duration-500 backdrop-blur-xl"
               >
-                Analyze Another Image
+                <span className="text-[#b6bac5]/90">Analyze another</span>
               </button>
             </div>
           </div>
@@ -433,27 +398,12 @@ export default function NutritionalDeficiencyDetector() {
       </div>
 
       <style jsx>{`
-        @keyframes float {
-          0%, 100% { transform: translate(0, 0) scale(1); }
-          33% { transform: translate(30px, -30px) scale(1.1); }
-          66% { transform: translate(-20px, 20px) scale(0.9); }
-        }
-        
         @keyframes fade-in {
           from { opacity: 0; transform: translateY(20px); }
           to { opacity: 1; transform: translateY(0); }
         }
-        
         .animate-fade-in {
-          animation: fade-in 0.6s ease-out forwards;
-        }
-        
-        .animate-float {
-          animation: float 20s ease-in-out infinite;
-        }
-        
-        .animate-float-delay {
-          animation: float 25s ease-in-out infinite 5s;
+          animation: fade-in 0.8s ease-out forwards;
         }
       `}</style>
     </div>
