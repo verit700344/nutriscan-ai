@@ -12,12 +12,12 @@ export default async function handler(request) {
 
   try {
     const body = await request.json();
-    const { image } = body;
+    const { image, mimeType } = body;
 
-    const hfToken = process.env.HUGGINGFACE_API_KEY;
+    const apiKey = process.env.ANTHROPIC_API_KEY;
 
     // If no API key, return professional demo response
-    if (!hfToken || hfToken === '' || hfToken === 'undefined') {
+    if (!apiKey || apiKey === '' || apiKey === 'undefined') {
       const demoResponse = {
         deficiencies: [
           {
@@ -112,7 +112,7 @@ export default async function handler(request) {
             ]
           }
         ],
-        generalObservations: "Demo Mode Active: This is a demonstration showing how the AI analysis works. The observations shown are examples of what the AI would detect with an API key configured. Visible indicators in the image may suggest potential nutritional considerations, but these require medical confirmation through proper blood tests.",
+        generalObservations: "Demo Mode Active: This demonstration shows the detailed analysis format. For real AI-powered analysis of your specific image, an Anthropic API key is required. The results shown are examples of comprehensive nutritional deficiency detection.",
         disclaimer: "This AI analysis is for educational and demonstration purposes only. It is not a medical diagnosis and should not replace professional medical advice. Always consult qualified healthcare providers for accurate diagnosis and treatment recommendations."
       };
 
@@ -125,82 +125,85 @@ export default async function handler(request) {
       });
     }
 
-    // Use Hugging Face Image-to-Text API
+    // Use Claude (Anthropic) Vision API
     try {
-      // First, get image description from Hugging Face
-      const imageBuffer = Uint8Array.from(atob(image), c => c.charCodeAt(0));
-      
-      const hfResponse = await fetch(
-        "https://api-inference.huggingface.co/models/Salesforce/blip-image-captioning-large",
+      const anthropicResponse = await fetch(
+        "https://api.anthropic.com/v1/messages",
         {
           method: "POST",
           headers: {
-            "Authorization": `Bearer ${hfToken}`,
-            "Content-Type": "application/octet-stream",
+            "x-api-key": apiKey,
+            "anthropic-version": "2023-06-01",
+            "content-type": "application/json",
           },
-          body: imageBuffer
-        }
-      );
+          body: JSON.stringify({
+            model: "claude-3-5-sonnet-20241022",
+            max_tokens: 2048,
+            messages: [
+              {
+                role: "user",
+                content: [
+                  {
+                    type: "image",
+                    source: {
+                      type: "base64",
+                      media_type: mimeType,
+                      data: image,
+                    },
+                  },
+                  {
+                    type: "text",
+                    text: `Analyze this image for potential nutritional deficiencies based on visible indicators in skin, hair, nails, eyes, lips, tongue, and overall appearance.
 
-      if (!hfResponse.ok) {
-        throw new Error(`HF API error: ${hfResponse.status}`);
-      }
+For EACH deficiency you detect, provide:
+- 5-8 specific symptoms visible in the image
+- 6-10 detailed root causes
+- 8-12 comprehensive remedies with specifics
+- 12-15 food sources with amounts
 
-      const hfData = await hfResponse.json();
-      const imageDescription = hfData[0]?.generated_text || "Unable to analyze image";
+Detect 2-5 different deficiencies if multiple signs are present.
 
-      // Now use the description to generate deficiency analysis
-      // Using Hugging Face text generation with a medical prompt
-      const analysisPrompt = `Based on this image description: "${imageDescription}"
-
-Analyze for potential nutritional deficiencies visible in human appearance.
-
-Return ONLY valid JSON in this exact format (no markdown, no extra text):
+Return ONLY valid JSON in this exact format (no markdown, no explanation, just the JSON):
 {
   "deficiencies": [
     {
       "nutrient": "Iron (Fe)",
-      "confidence": "medium",
-      "symptoms": ["symptom 1", "symptom 2", "symptom 3", "symptom 4", "symptom 5"],
-      "causes": ["cause 1", "cause 2", "cause 3", "cause 4", "cause 5", "cause 6", "cause 7", "cause 8"],
-      "remedies": ["remedy 1", "remedy 2", "remedy 3", "remedy 4", "remedy 5", "remedy 6", "remedy 7", "remedy 8", "remedy 9", "remedy 10"],
-      "foodSources": ["food with amount 1", "food 2", "food 3", "food 4", "food 5", "food 6", "food 7", "food 8", "food 9", "food 10", "food 11", "food 12", "food 13"]
+      "confidence": "high/medium/low",
+      "symptoms": ["symptom 1", "symptom 2", "symptom 3", "symptom 4", "symptom 5", "symptom 6", "symptom 7", "symptom 8"],
+      "causes": ["cause 1", "cause 2", "cause 3", "cause 4", "cause 5", "cause 6", "cause 7", "cause 8", "cause 9", "cause 10"],
+      "remedies": ["remedy 1", "remedy 2", "remedy 3", "remedy 4", "remedy 5", "remedy 6", "remedy 7", "remedy 8", "remedy 9", "remedy 10", "remedy 11", "remedy 12"],
+      "foodSources": ["food with amount 1", "food 2", "food 3", "food 4", "food 5", "food 6", "food 7", "food 8", "food 9", "food 10", "food 11", "food 12", "food 13", "food 14", "food 15"]
     }
   ],
-  "generalObservations": "Professional 3-4 sentence analysis based on visual indicators",
-  "disclaimer": "Educational purposes only. Not medical advice. Consult healthcare providers."
-}`;
-
-      const textResponse = await fetch(
-        "https://api-inference.huggingface.co/models/mistralai/Mistral-7B-Instruct-v0.2",
-        {
-          method: "POST",
-          headers: {
-            "Authorization": `Bearer ${hfToken}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            inputs: analysisPrompt,
-            parameters: {
-              max_new_tokens: 1500,
-              temperature: 0.7,
-              return_full_text: false
-            }
-          })
+  "generalObservations": "3-4 sentence comprehensive analysis of visible indicators",
+  "disclaimer": "This analysis is for educational purposes only and should not replace professional medical advice. Consult healthcare providers for diagnosis and treatment."
+}`
+                  }
+                ],
+              },
+            ],
+          }),
         }
       );
 
-      if (!textResponse.ok) {
-        throw new Error(`Text gen error: ${textResponse.status}`);
+      if (!anthropicResponse.ok) {
+        const errorText = await anthropicResponse.text();
+        console.error('Anthropic API error:', errorText);
+        throw new Error(`Anthropic API error: ${anthropicResponse.status}`);
       }
 
-      const textData = await textResponse.json();
-      let analysisText = textData[0]?.generated_text || "";
+      const anthropicData = await anthropicResponse.json();
+      
+      if (!anthropicData.content || !anthropicData.content[0]) {
+        throw new Error('No response from Claude');
+      }
+
+      let analysisText = anthropicData.content[0].text;
       
       // Clean up the response
       analysisText = analysisText.replace(/```json\n?|\n?```/g, '').trim();
       
-      // Try to parse it
+      // Validate it's JSON
       const parsedAnalysis = JSON.parse(analysisText);
 
       return new Response(JSON.stringify({ analysis: JSON.stringify(parsedAnalysis) }), {
@@ -211,19 +214,24 @@ Return ONLY valid JSON in this exact format (no markdown, no extra text):
         },
       });
     } catch (apiError) {
-      console.error('HF API error:', apiError);
+      console.error('Claude API error:', apiError);
       
-      // Fallback to enhanced demo on API failure
+      // Fallback to demo on API failure
       const fallback = {
         deficiencies: [{
-          nutrient: "Analysis in Progress",
-          confidence: "medium",
-          symptoms: ["Image analyzed successfully", "AI processing complete", "Results generated from visual indicators"],
-          causes: ["Based on appearance analysis", "Evaluated visible characteristics"],
-          remedies: ["The Hugging Face API is warming up (first use can take 20 seconds)", "Refresh and try again for AI-powered results", "Or enjoy this professional demo analysis"],
-          foodSources: ["Real AI analysis available with API key"]
+          nutrient: "API Connection",
+          confidence: "low",
+          symptoms: ["Claude Vision API attempted", "Check API key configuration"],
+          causes: ["Invalid or missing Anthropic API key", "API rate limit reached", "Network connectivity issue"],
+          remedies: [
+            "Verify Anthropic API key at https://console.anthropic.com/",
+            "Check API key is set as ANTHROPIC_API_KEY in Vercel environment variables",
+            "Ensure API key has sufficient credits",
+            "Try again in a moment"
+          ],
+          foodSources: ["Demo mode active - add valid API key for real analysis"]
         }],
-        generalObservations: "Hugging Face API is available but may need a moment to warm up on first use. The demo results shown are examples of the detailed analysis you'll receive once the API is ready.",
+        generalObservations: "Unable to connect to Claude Vision API. Please verify your Anthropic API key is correctly configured in Vercel environment variables.",
         disclaimer: "Educational purposes only. Not medical advice."
       };
 
@@ -243,12 +251,16 @@ Return ONLY valid JSON in this exact format (no markdown, no extra text):
       deficiencies: [{
         nutrient: "System Ready",
         confidence: "high",
-        symptoms: ["App is working correctly", "Ready to analyze images", "Demo mode active"],
-        causes: ["No API key configured (optional)", "Using demonstration mode"],
-        remedies: ["Upload any image to see professional demo analysis", "Add Hugging Face API key for real AI analysis (free at huggingface.co)"],
-        foodSources: ["Demo results shown below"]
+        symptoms: ["App is working correctly", "Ready to analyze images"],
+        causes: ["Demo mode active - no API key configured"],
+        remedies: [
+          "Get free Anthropic API key at https://console.anthropic.com/",
+          "Add as ANTHROPIC_API_KEY in Vercel environment variables",
+          "Enjoy $5 free credit for testing"
+        ],
+        foodSources: ["Real AI analysis available with API key"]
       }],
-      generalObservations: "System is operational and ready to analyze images. Currently running in demo mode with professional example results.",
+      generalObservations: "System operational. Currently in demo mode. Add Anthropic API key for real Claude Vision analysis.",
       disclaimer: "Educational purposes only."
     };
 
