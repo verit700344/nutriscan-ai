@@ -432,10 +432,28 @@ export default function NutritionalDeficiencyDetector() {
   // Animated Progress Bar
   const AnimatedProgressBar = ({ severity, delay = 0 }) => {
     const [width, setWidth] = useState(0);
+    const [displayValue, setDisplayValue] = useState(0);
     const colors = getSeverityColor(severity);
     
     useEffect(() => {
-      const timer = setTimeout(() => setWidth(severity), delay);
+      const timer = setTimeout(() => {
+        setWidth(severity);
+        
+        // Animate the number counting up
+        let current = 0;
+        const increment = severity / 30; // 30 steps
+        const counter = setInterval(() => {
+          current += increment;
+          if (current >= severity) {
+            setDisplayValue(severity);
+            clearInterval(counter);
+          } else {
+            setDisplayValue(Math.floor(current));
+          }
+        }, 30);
+        
+        return () => clearInterval(counter);
+      }, delay);
       return () => clearTimeout(timer);
     }, [severity, delay]);
     
@@ -443,7 +461,7 @@ export default function NutritionalDeficiencyDetector() {
       <div className="space-y-3">
         <div className="flex items-center justify-between text-sm">
           <span className="text-purple-200/60 font-bold uppercase tracking-wider">Severity Level</span>
-          <span className={`font-black ${colors.text} transition-all duration-1000`}>{width}%</span>
+          <span className={`font-black ${colors.text} transition-all duration-300 text-lg`}>{displayValue}%</span>
         </div>
         <div className="relative h-5 bg-purple-900/30 rounded-full overflow-hidden border border-purple-500/20">
           <div 
