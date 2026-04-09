@@ -114,17 +114,27 @@ export default function NutritionalDeficiencyDetector() {
   const startCamera = async () => {
     try {
       const mediaStream = await navigator.mediaDevices.getUserMedia({ 
-        video: { facingMode: 'user', width: 1280, height: 720 } 
+        video: { 
+          facingMode: 'user',
+          width: { ideal: 1280 },
+          height: { ideal: 720 }
+        } 
       });
-      setStream(mediaStream);
+      
       if (videoRef.current) {
         videoRef.current.srcObject = mediaStream;
+        // Force video to play
+        videoRef.current.onloadedmetadata = () => {
+          videoRef.current.play().catch(err => console.error("Video play error:", err));
+        };
       }
+      
+      setStream(mediaStream);
       setCameraActive(true);
       playSound('click');
     } catch (err) {
       console.error("Camera error:", err);
-      alert("Unable to access camera. Please check permissions.");
+      alert("Unable to access camera. Please check permissions and ensure you're using HTTPS.");
     }
   };
 
@@ -429,44 +439,31 @@ export default function NutritionalDeficiencyDetector() {
     return 'text-blue-400 bg-blue-500/20 border-blue-500/40';
   };
 
-  // Animated Progress Bar
+  // Animated Progress Bar - FIXED VERSION
   const AnimatedProgressBar = ({ severity, delay = 0 }) => {
-    const [width, setWidth] = useState(0);
-    const [displayValue, setDisplayValue] = useState(0);
+    const [animated, setAnimated] = useState(false);
     const colors = getSeverityColor(severity);
     
     useEffect(() => {
       const timer = setTimeout(() => {
-        setWidth(severity);
-        
-        // Animate the number counting up
-        let current = 0;
-        const increment = severity / 30; // 30 steps
-        const counter = setInterval(() => {
-          current += increment;
-          if (current >= severity) {
-            setDisplayValue(severity);
-            clearInterval(counter);
-          } else {
-            setDisplayValue(Math.floor(current));
-          }
-        }, 30);
-        
-        return () => clearInterval(counter);
-      }, delay);
+        setAnimated(true);
+      }, delay + 100);
       return () => clearTimeout(timer);
-    }, [severity, delay]);
+    }, [delay]);
     
     return (
       <div className="space-y-3">
         <div className="flex items-center justify-between text-sm">
           <span className="text-purple-200/60 font-bold uppercase tracking-wider">Severity Level</span>
-          <span className={`font-black ${colors.text} transition-all duration-300 text-lg`}>{displayValue}%</span>
+          <span className={`font-black ${colors.text} text-xl`}>{severity}%</span>
         </div>
         <div className="relative h-5 bg-purple-900/30 rounded-full overflow-hidden border border-purple-500/20">
           <div 
-            className={`absolute inset-y-0 left-0 bg-gradient-to-r ${colors.gradient} rounded-full transition-all duration-1000 ease-out`}
-            style={{ width: `${width}%` }}
+            className={`absolute inset-y-0 left-0 bg-gradient-to-r ${colors.gradient} rounded-full transition-all ease-out`}
+            style={{ 
+              width: animated ? `${severity}%` : '0%',
+              transitionDuration: '1200ms'
+            }}
           />
           <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-shimmer" />
           <div className="absolute inset-0 bg-gradient-to-b from-white/10 to-transparent" />
@@ -779,7 +776,9 @@ export default function NutritionalDeficiencyDetector() {
                   ref={videoRef} 
                   autoPlay 
                   playsInline
-                  className="w-full max-h-[600px] object-contain"
+                  muted
+                  className="w-full max-h-[600px] object-contain bg-black"
+                  style={{ transform: 'scaleX(-1)' }}
                 />
                 <canvas ref={canvasRef} className="hidden" />
                 <div className="absolute inset-0 pointer-events-none">
