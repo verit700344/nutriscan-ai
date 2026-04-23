@@ -7,7 +7,7 @@ import {
 } from 'lucide-react';
 
 // --------------------------------------------------------------
-// SYMPTOM QUESTIONNAIRE (Step 1) with animations
+// SYMPTOM QUESTIONNAIRE (Step 1)
 // --------------------------------------------------------------
 const SYMPTOMS = [
   { id: 'fatigue',      label: 'Fatigue / Low Energy',         icon: '⚡', desc: 'Persistent tiredness even after adequate sleep' },
@@ -416,6 +416,7 @@ export default function NutritionalDeficiencyDetector() {
     }
   };
 
+  // Fixed: Corrected string for Folate (B9)
   const getFoodSources = (nutrient) => {
     const sources = {
       'Iron': ['Red meat', 'Spinach', 'Lentils', 'Fortified cereals', 'Oysters', 'Dark chocolate', 'Pumpkin seeds', 'Quinoa', 'Turkey', 'Broccoli'],
@@ -426,4 +427,4 @@ export default function NutritionalDeficiencyDetector() {
       'Magnesium': ['Almonds', 'Spinach', 'Black beans', 'Avocado', 'Dark chocolate', 'Pumpkin seeds'],
       'Zinc': ['Oysters', 'Beef', 'Pumpkin seeds', 'Lentils', 'Chickpeas', 'Cashews'],
       'Vitamin A': ['Sweet potatoes', 'Carrots', 'Spinach', 'Kale', 'Butternut squash', 'Cantaloupe'],
-      'Folate (B9)': ['Leafy greens', 'Legumes', 'Asparagus', 'Avocado', 'Brusse
+      'Folate (B9)': ['Leafy greens', 'Legumes', 'A
