@@ -475,7 +475,7 @@ export default function NutritionalDeficiencyDetector() {
     if (val === 'sev') return 'bg-red-500/20 border border-red-500/60 text-red-300 shadow-red-500/30';
   };
 
-  const StepProgressBar = ({ current, total }) => (
+  const renderStepProgressBar = (current, total) => (
     <div className="flex items-center gap-3 mb-12">
       {Array.from({ length: total }, (_, i) => (
         <React.Fragment key={i}>
@@ -496,9 +496,9 @@ export default function NutritionalDeficiencyDetector() {
   );
 
   // ── STEP 1: Symptom questionnaire ─────────────────────────────────────────
-  const PreStep1 = () => (
+  const renderPreStep1 = () => (
     <div className="animate-slide-up">
-      <StepProgressBar current={1} total={4} />
+      {renderStepProgressBar(1, 4)}
 
       <div className="flex items-center gap-6 mb-10">
         <div className="relative">
@@ -598,9 +598,9 @@ export default function NutritionalDeficiencyDetector() {
   );
 
   // ── STEP 2: Blood report ──────────────────────────────────────────────────
-  const PreStep2 = () => (
+  const renderPreStep2 = () => (
     <div className="animate-slide-up">
-      <StepProgressBar current={2} total={4} />
+      {renderStepProgressBar(2, 4)}
 
       <div className="flex items-center gap-6 mb-10">
         <div className="relative">
@@ -671,7 +671,7 @@ export default function NutritionalDeficiencyDetector() {
   );
 
   // ── STEP 3: Photo guide ───────────────────────────────────────────────────
-  const PreStep3 = () => {
+  const renderPreStep3 = () => {
     const guides = [
       {
         title: 'Lip & Tongue',
@@ -725,7 +725,7 @@ export default function NutritionalDeficiencyDetector() {
 
     return (
       <div className="animate-slide-up">
-        <StepProgressBar current={3} total={4} />
+        {renderStepProgressBar(3, 4)}
 
         <div className="flex items-center gap-6 mb-10">
           <div className="relative">
@@ -813,7 +813,7 @@ export default function NutritionalDeficiencyDetector() {
   };
 
   // ── STEP 4: Summary + upload ──────────────────────────────────────────────
-  const PreStep4 = () => {
+  const renderPreStep4 = () => {
     const severeSyms = Object.entries(symptomData).filter(([,v]) => v === 'sev').map(([k]) => symptoms.find(s => s.id === k)?.label).filter(Boolean);
     const modSyms = Object.entries(symptomData).filter(([,v]) => v === 'mod').map(([k]) => symptoms.find(s => s.id === k)?.label).filter(Boolean);
     const bloodEntered = Object.entries(bloodData).filter(([,v]) => v).length;
@@ -821,7 +821,7 @@ export default function NutritionalDeficiencyDetector() {
 
     return (
       <div className="animate-slide-up">
-        <StepProgressBar current={4} total={4} />
+        {renderStepProgressBar(4, 4)}
 
         <div className="flex items-center gap-6 mb-10">
           <div className="relative">
@@ -1173,10 +1173,10 @@ export default function NutritionalDeficiencyDetector() {
             </div>
           </div>
 
-        ) : preAssessmentStep === 1 ? <PreStep1 />
-          : preAssessmentStep === 2 ? <PreStep2 />
-          : preAssessmentStep === 3 ? <PreStep3 />
-          : preAssessmentStep === 4 && !image ? <PreStep4 />
+        ) : preAssessmentStep === 1 ? renderPreStep1()
+          : preAssessmentStep === 2 ? renderPreStep2()
+          : preAssessmentStep === 3 ? renderPreStep3()
+          : preAssessmentStep === 4 && !image ? renderPreStep4()
 
         : !results && !analyzing && image ? (
           /* Image preview — unchanged */
